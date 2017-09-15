@@ -1,0 +1,57 @@
+###############################################################################
+# Copyright 2016-2017 Cavium.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###############################################################################
+# Consul Docker image for EdgeX Foundry
+FROM arm64v8/ubuntu:zesty
+MAINTAINER Federico Claramonte <fede.claramonte@caviumnetworks.com>
+
+# environment variables
+#ENV CONSUL_LOCAL_CONFIG='{"skip_leave_on_interrupt": true}'
+#Note also Consul team have set skip_leave_on_interrupt using the CONSUL_LOCAL_CONFIG environment variable. This is recommended for servers and will be defaulted to true in Consul 0.7 and later, so this will no longer be necessary.
+
+# Create a consul user and group first so the IDs get set the same way, even as
+# the rest of this may change over time.
+RUN addgroup consul && \
+    adduser --system --ingroup consul consul
+
+RUN apt-get update && apt-get install consul && apt-get clean
+
+# The /consul/data dir is used by Consul to store state. The agent will be started
+# with /consul/config as the configuration directory so you can add additional
+# config files in that location.
+RUN mkdir -p /consul/data && \
+    mkdir -p /consul/config && \
+    chown -R consul:consul /consul
+
+# Expose the consul data directory as a volume since there's mutable state in there.
+VOLUME /consul/data
+
+# Server RPC is used for communication between Consul clients and servers for internal
+# request forwarding.
+EXPOSE 8300
+
+# Serf LAN and WAN (WAN is used only by Consul servers) are used for gossip between
+# Consul agents. LAN is within the datacenter and WAN is between just the Consul
+# servers in all datacenters.
+EXPOSE 8301 8301/udp 8302 8302/udp
+
+# HTTP and DNS (both TCP and UDP) are the primary interfaces that applications
+# use to interact with Consul.
+EXPOSE 8500 8600 8600/udp
+
+# kick off Consul with the default argument for EdgeX
+ENTRYPOINT rm -rf /consul/data/* && consul agent -data-dir=/consul/data -config-dir=/consul/config -server -client=0.0.0.0 -bootstrap -ui | tee /edgex/logs/core-consul.log
+
