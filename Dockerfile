@@ -23,5 +23,5 @@ MAINTAINER Cloud Tsai <Cloud.Tsai@Dell.com>
 #Note also Consul team have set skip_leave_on_interrupt using the CONSUL_LOCAL_CONFIG environment variable. This is recommended for servers and will be defaulted to true in Consul 0.7 and later, so this will no longer be necessary.
 
 # kick off Consul with the default argument for EdgeX
-ENTRYPOINT rm -rf /consul/data/* && docker-entrypoint.sh agent -server -client=0.0.0.0 -bootstrap -ui | tee /edgex/logs/core-consul.log
+ENTRYPOINT rm -rf /consul/data/* && docker-entrypoint.sh agent -server -client=[::] -bootstrap -ui | tee /edgex/logs/core-consul.log
 CMD []
